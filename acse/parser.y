@@ -263,13 +263,13 @@ if_repeat_statement
   {
     $1.lExit = createLabel(program);
     genBEQ(program, $3, REG_0, $1.lExit);
-    
+
     $1.lLoop = createLabel(program);
     assignLabel(program, $1.lLoop);
   }
   code_block UNTIL LPAR exp RPAR
   {
-    genBNE(program, $9, REG_0, $1.lLoop);
+    genBEQ(program, $9, REG_0, $1.lLoop);
     assignLabel(program, $1.lExit);
   }
 
