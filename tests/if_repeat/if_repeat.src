@@ -1,0 +1,7 @@
+int i;
+read(i);
+if_repeat (i > 0) {
+    write(i);
+    i = i - 1;
+} until (i == 0);
+write(0);
