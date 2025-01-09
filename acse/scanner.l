@@ -81,6 +81,8 @@ ID                        [a-zA-Z_][a-zA-Z0-9_]*
 "return"                  { return RETURN; }
 "read"                    { return READ; }
 "write"                   { return WRITE; }
+"until"                   { return UNTIL; }
+"if_repeat"               { return IFREPEAT; }
 
 {ID}                      {
                             yylval.string = strdup(yytext);

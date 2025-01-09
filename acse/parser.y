@@ -50,6 +50,7 @@ void yyerror(const char *msg)
   t_label *label;
   t_ifStmt ifStmt;
   t_whileStmt whileStmt;
+  t_ifRepeatStmt ifRepeatStmt;
 }
 
 /*
@@ -70,6 +71,7 @@ void yyerror(const char *msg)
 %token TYPE
 %token RETURN
 %token READ WRITE ELSE
+%token UNTIL
 
 // These are the tokens with a semantic value.
 %token <ifStmt> IF
@@ -77,6 +79,7 @@ void yyerror(const char *msg)
 %token <label> DO
 %token <string> IDENTIFIER
 %token <integer> NUMBER
+%token <ifRepeatStmt> IFREPEAT
 
 /*
  * Non-terminal symbol semantic value type declarations
@@ -183,6 +186,7 @@ statement
   | read_statement SEMI
   | write_statement SEMI
   | SEMI
+  | if_repeat_statement SEMI
 ;
 
 /* An assignment statement stores the value of an expression in the memory
@@ -253,6 +257,21 @@ while_statement
     assignLabel(program, $1.lExit);
   }
 ;
+
+if_repeat_statement
+  : IFREPEAT LPAR exp RPAR
+  {
+    $1.lExit = createLabel(program);
+    genBEQ(program, $3, REG_0, $1.lExit);
+    
+    $1.lLoop = createLabel(program);
+    assignLabel(program, $1.lLoop);
+  }
+  code_block UNTIL LPAR exp RPAR
+  {
+    genBNE(program, $9, REG_0, $1.lLoop);
+    assignLabel(program, $1.lExit);
+  }
 
 /* A do-while statement repeats the execution of its code block as long as the
  * expression is different than zero. The expression is computed at the
