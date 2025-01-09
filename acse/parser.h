@@ -29,7 +29,7 @@ typedef struct {
 typedef struct {
   t_label *lLoop;
   t_label *lExit;
-};
+} t_ifRepeatStmt;
 
 
 /**
