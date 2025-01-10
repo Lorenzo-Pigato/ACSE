@@ -1,0 +1,7 @@
+int a, b[5];
+a = 5;
+b[2] = 10;
+write(a++);     // prints 5
+write(a);       // prints 6
+write(b[2]++);  // prints 10
+write(b[2]);    // prints 11

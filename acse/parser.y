@@ -70,6 +70,7 @@ void yyerror(const char *msg)
 %token TYPE
 %token RETURN
 %token READ WRITE ELSE
+%token INC
 
 // These are the tokens with a semantic value.
 %token <ifStmt> IF
@@ -435,6 +436,33 @@ exp
     $$ = getNewRegister(program);
     genOR(program, $$, rNormalizedOp1, rNormalizedOp2);
   }
+  | var_id INC
+  {
+    $$ = getNewRegister(program);
+    if(isArray($1)){
+      yyerror("Cannot increment a non-indexed array");
+      YYERROR;
+    }
+    
+    $$ = genLoadVariable(program, $1);
+    t_regID temp = getNewRegister(program);
+
+    genADDI(program, temp, $$, 1);
+    genStoreRegisterToVariable(program, $1, temp);
+  }
+  | var_id LSQUARE exp RSQUARE INC
+  {
+    $$ = getNewRegister(program);
+    if(!isArray($1)){
+      yyerror("Incrementing an invalid array");
+    }
+    
+    $$ = genLoadArrayElement(program, $1, $3);
+    t_regID temp = getNewRegister(program);
+
+    genADDI(program, temp, $$, 1);
+    genStoreRegisterToArrayElement(program, $1, $3, temp);
+  } 
 ;
 
 var_id
