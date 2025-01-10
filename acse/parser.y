@@ -70,6 +70,7 @@ void yyerror(const char *msg)
 %token TYPE
 %token RETURN
 %token READ WRITE ELSE
+%token PICK
 
 // These are the tokens with a semantic value.
 %token <ifStmt> IF
@@ -435,6 +436,45 @@ exp
     $$ = getNewRegister(program);
     genOR(program, $$, rNormalizedOp1, rNormalizedOp2);
   }
+  | PICK LPAR var_id COMMA exp RPAR
+  {
+    $$ = getNewRegister(program);
+    if(!isArray($3)){
+      yyerror("Pick operator can only be used with arrays");
+      YYERROR;
+    }
+    genLI(program, $$, REG_0);
+  
+    t_regID temp = getNewRegister(program);
+    t_regID bit = getNewRegister(program);
+    t_regID index = getNewRegister(program);
+
+    genADDI(program, temp, $5, REG_0);
+    genADDI(program, index, index, REG_0);
+
+    t_label* lLoop = createLabel(program);
+    t_label* lExit = createLabel(program);
+    t_label* lLoad = createLabel(program);
+
+    assignLabel(program, lLoop);
+    genBEQ(program, temp, REG_0, lExit);
+    genREMI(program, bit, temp, 2);
+    genBEQ(program, bit, 1, lLoad);
+    genSRLI(program, temp, temp, 1);
+    genADDI(program, index, index, 1);
+    genJ(program, lLoop);
+
+    assignLabel(program, lLoad);
+    genSUBI(program, temp, $3->arraySize, index);
+    genBLE(program, temp, REG_0, lExit);
+    
+    $$ = genLoadArrayElement(program, $3, index);
+    
+    assignLabel(program, lExit);
+
+
+
+  } 
 ;
 
 var_id
