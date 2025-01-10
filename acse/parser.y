@@ -438,19 +438,19 @@ exp
   }
   | PICK LPAR var_id COMMA exp RPAR
   {
-    $$ = getNewRegister(program);
     if(!isArray($3)){
       yyerror("Pick operator can only be used with arrays");
       YYERROR;
     }
+    $$ = getNewRegister(program);
     genLI(program, $$, REG_0);
   
     t_regID temp = getNewRegister(program);
     t_regID bit = getNewRegister(program);
     t_regID index = getNewRegister(program);
 
-    genADDI(program, temp, $5, REG_0);
-    genADDI(program, index, index, REG_0);
+    genADD(program, temp, $5, REG_0);
+    genLI(program, index, REG_0);
 
     t_label* lLoop = createLabel(program);
     t_label* lExit = createLabel(program);
@@ -459,13 +459,13 @@ exp
     assignLabel(program, lLoop);
     genBEQ(program, temp, REG_0, lExit);
     genREMI(program, bit, temp, 2);
-    genBEQ(program, bit, 1, lLoad);
+    genBNE(program, bit, REG_0, lLoad);         // NOW I SEE WHY... REMEMBER: BEQ does not take integers, only registers
     genSRLI(program, temp, temp, 1);
     genADDI(program, index, index, 1);
     genJ(program, lLoop);
 
     assignLabel(program, lLoad);
-    genSUBI(program, temp, $3->arraySize, index);
+    genSUB(program, temp, $3->arraySize, index);
     genBLE(program, temp, REG_0, lExit);
     
     $$ = genLoadArrayElement(program, $3, index);

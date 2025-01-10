@@ -8,9 +8,5 @@ while (i < 10) {
     i = i+1;
 }
 
-//c = pick(a, 123456) * 1024;             // The least significant bit set to 1 is bit 6
-//write(c);                               // Prints a[6] * 1024 = 7168
-c = 4;
-c = pick(a, c);                         // The first bit set to 1 is bit 10, out of bounds!
-write(c);                               // Prints 0
-//write(pick(a, c - 7168));               // The expression is equal to zero, prints 0
+c = pick(a, 4);                         // The firs 1 is in position 3
+write(c);                               // Prints result (4)
