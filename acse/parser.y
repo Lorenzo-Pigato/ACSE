@@ -50,6 +50,7 @@ void yyerror(const char *msg)
   t_label *label;
   t_ifStmt ifStmt;
   t_whileStmt whileStmt;
+  t_repeatExpStmt repeatExpStmt;
 }
 
 /*
@@ -70,7 +71,6 @@ void yyerror(const char *msg)
 %token TYPE
 %token RETURN
 %token READ WRITE ELSE
-%token REPEAT_EXP
 
 // These are the tokens with a semantic value.
 %token <ifStmt> IF
@@ -78,6 +78,7 @@ void yyerror(const char *msg)
 %token <label> DO
 %token <string> IDENTIFIER
 %token <integer> NUMBER
+%token <repeatExpStmt> REPEAT_EXP
 
 /*
  * Non-terminal symbol semantic value type declarations
@@ -309,28 +310,31 @@ write_statement
 ;
 
 repeat_exp_statement
-  : REPEAT_EXP LPAR var_id ASSIGN exp COMMA exp COMMA exp RPAR
+  : REPEAT_EXP LPAR var_id ASSIGN exp COMMA exp COMMA
   {
     if(isArray($3)){
-      yyerror("repeated_exp can be used only on variables, not on arrays")
-      YYERROR
+      yyerror("repeated_exp can be used only on variables, not on arrays");
+      YYERROR;
     }
 
-    genADDI(program, $3, $5, REG_O);
-    t_label* lExit = createLabel(program);
+    genStoreRegisterToVariable(program, $3, $5);
 
-    t_label* lLoop = createLabel(program);
-    t_regID temp = genLoadVariable(program, $7);
+    $1.iterations = getNewRegister(program);
+    genADDI(program, $1.iterations, $7, 0);
 
-    assignLabel(lLoop);
-    genBEQ(program , temp, REG_0, lExit);
-    genADDI(program, $3, $9, REG_O);
-    genSUBI(program, temp, temp, 1);
-    genJ(program, lLoop);
+    $1.lLoop = createLabel(program);
+    $1.lExit = createLabel(program);
+    assignLabel(program, $1.lLoop);
 
-    assignLabel(program, lExit);
-    
+    genBLE(program , $1.iterations, REG_0, $1.lExit);
+  }
+  exp RPAR
+  {
+    genStoreRegisterToVariable(program, $3, $10);
+    genSUBI(program, $1.iterations, $1.iterations, 1);
+    genJ(program, $1.lLoop);
 
+    assignLabel(program, $1.lExit);
   }
 
 /* The exp rule represents the syntax of expressions. The semantic value of
