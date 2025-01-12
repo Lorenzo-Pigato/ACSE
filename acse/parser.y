@@ -70,6 +70,7 @@ void yyerror(const char *msg)
 %token TYPE
 %token RETURN
 %token READ WRITE ELSE
+%token CSWAP
 
 // These are the tokens with a semantic value.
 %token <ifStmt> IF
@@ -182,8 +183,35 @@ statement
   | return_statement SEMI
   | read_statement SEMI
   | write_statement SEMI
+  | cswap_statement SEMI
   | SEMI
 ;
+
+// Cswap Statement
+cswap_statement
+  : CSWAP LPAR var_id COMMA exp COMMA exp COMMA var_id RPAR
+  {
+    if(isArray($3)){
+      yyerror("cswap can be used only with integer variables");
+      YYERROR;
+    }
+
+    t_label* lExit = createLabel(program);
+    t_regID temp = getNewRegister(program);
+    temp = genLoadVariable(program, $3);
+
+    genBNE(program, temp, $5, lExit);
+
+
+    genStoreRegisterToVariable(program, $9, temp);
+    genADDI(program, temp, $7, 0);
+
+    genStoreRegisterToVariable(program, $3, temp);
+
+    assignLabel(program, lExit);
+    genStoreRegisterToVariable(program, $9, temp);
+
+  } 
 
 /* An assignment statement stores the value of an expression in the memory
  * location of a given scalar variable or array element. */
