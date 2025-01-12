@@ -70,6 +70,7 @@ void yyerror(const char *msg)
 %token TYPE
 %token RETURN
 %token READ WRITE ELSE
+%token REPLACE
 
 // These are the tokens with a semantic value.
 %token <ifStmt> IF
@@ -182,6 +183,7 @@ statement
   | return_statement SEMI
   | read_statement SEMI
   | write_statement SEMI
+  | replace SEMI
   | SEMI
 ;
 
@@ -197,6 +199,38 @@ assign_statement
     genStoreRegisterToArrayElement(program, $1, $3, $6);
   }
 ;
+
+replace
+  : REPLACE LPAR var_id COMMA exp COMMA exp RPAR
+  {
+    if(!isArray($3)){
+      yyerror("Replace operator can be used only on arrays");
+      YYERROR;
+    }
+
+    t_regID index = getNewRegister(program);
+    t_regID size = getNewRegister(program);
+    t_label* lLoop = createLabel(program);
+    t_label* lExit = createLabel(program);
+    t_label* lSkip = createLabel(program);
+    
+    t_regID temp = getNewRegister(program);
+
+    genLI(program, index, 0);
+    genADDI(program, size, $3->arraySize, 0);
+
+    assignLabel(program, lLoop);
+    genBEQ(program, index, size, lExit);
+    temp = genLoadArrayElement(program, $3, index);
+    genBNE(program, temp, $5, lSkip);
+    genStoreRegisterToArrayElement(program, $3, index, $7);
+
+    assignLabel(program, lSkip);
+    genADDI(program, index, index, 1);
+    genJ(program, lLoop);
+
+    assignLabel(program, lExit);
+  }
 
 /* An if statements first computes the expression, then jumps to the `else' part
  * if the expression is equal to zero. Otherwise the `then' part is executed.
