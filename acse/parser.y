@@ -70,6 +70,7 @@ void yyerror(const char *msg)
 %token TYPE
 %token RETURN
 %token READ WRITE ELSE
+%token EDIV
 
 // These are the tokens with a semantic value.
 %token <ifStmt> IF
@@ -434,6 +435,30 @@ exp
     genSNE(program, rNormalizedOp2, $3, REG_0);
     $$ = getNewRegister(program);
     genOR(program, $$, rNormalizedOp1, rNormalizedOp2);
+  }
+  | exp EDIV exp
+  {
+    $$ = getNewRegister(program);
+    genLI(program, $$, 0);
+
+    t_label* lExit = createLabel(program);
+    t_regID r_q = getNewRegister(program);
+    genLI(program, r_q, INT_MAX);
+
+    genBEQ(program, $3, REG_0, lExit);
+    t_regID r_div = getNewRegister(program);
+    t_label* lLoop = createLabel(program);
+    genADDI(program, r_div, $1, 0);
+    genLI(program, r_q, 0);
+
+    assignLabel(program, lLoop);
+    genBLE(program, r_div, REG_0, lExit);
+    genADDI(program, r_q, r_q, 1);
+    genSUB(program, r_div, r_div, $3);
+    genJ(program, lLoop);
+
+    assignLabel(program, lExit);
+    genADDI(program, $$, r_q, 0);
   }
 ;
 
