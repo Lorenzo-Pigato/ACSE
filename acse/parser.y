@@ -70,6 +70,7 @@ void yyerror(const char *msg)
 %token TYPE
 %token RETURN
 %token READ WRITE ELSE
+%token INBOUNDS
 
 // These are the tokens with a semantic value.
 %token <ifStmt> IF
@@ -434,6 +435,34 @@ exp
     genSNE(program, rNormalizedOp2, $3, REG_0);
     $$ = getNewRegister(program);
     genOR(program, $$, rNormalizedOp1, rNormalizedOp2);
+  }
+  | INBOUNDS LPAR var_id ASSIGN var_id LSQUARE exp RSQUARE RPAR
+  {
+    if(isArray($3) || !isArray($5)){
+      yyerror("SYNTAX ERROR: Inbounds() needs a variable and an array position");
+      YYERROR;
+    }
+
+    $$ = getNewRegister(program);
+    t_label* lExit = createLabel(program);
+    t_regID size = getNewRegister(program);
+    genADDI(program, size, REG_0, $5->arraySize);
+
+    genLI(program, $$, 0);
+
+
+
+    genBGE(program, $7, size, lExit);
+    genBLT(program, $7, REG_0, lExit);
+    genLI(program, $$, 1);
+    
+    t_regID temp = getNewRegister(program);
+    temp = genLoadArrayElement(program, $5, $7);
+    genStoreRegisterToVariable(program, $3, temp);
+    
+    assignLabel(program, lExit);
+
+
   }
 ;
 
