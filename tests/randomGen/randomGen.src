@@ -1,0 +1,22 @@
+int a, i;
+i = 0;
+write(i);
+
+while (i < 3) {
+    i = i+1;
+    write(i);
+    //write(random());        // 87628868, 71072467, -1962130922
+}
+
+//randomize(12345);
+
+write(random());        // writes 87628868
+//write(random());
+//write(random());
+//write(random());
+//write(random());
+//write(random());
+//write(random());
+//write(random());
+
+//write(a);       // writes 71072467 / 1000 + 7 = 71079

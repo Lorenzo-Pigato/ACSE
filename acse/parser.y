@@ -16,6 +16,8 @@
  * Global variables
  */
 
+t_regID r_random;
+
 // The program currently being compiled.
 static t_program *program;
 
@@ -70,6 +72,7 @@ void yyerror(const char *msg)
 %token TYPE
 %token RETURN
 %token READ WRITE ELSE
+%token RANDOM RANDOMIZE
 
 // These are the tokens with a semantic value.
 %token <ifStmt> IF
@@ -125,6 +128,8 @@ void yyerror(const char *msg)
 program
   : var_declarations statements EOF_TOK
   {
+    r_random = getNewRegister(program);
+    genADDI(program, r_random, REG_0, 12345);
     // Generate the epilog of the program, that is, a call to the
     // `exit' syscall.
     genEpilog(program);
@@ -182,6 +187,7 @@ statement
   | return_statement SEMI
   | read_statement SEMI
   | write_statement SEMI
+  | randomize_statement SEMI
   | SEMI
 ;
 
@@ -303,6 +309,13 @@ write_statement
     t_regID rTmp = getNewRegister(program);
     genLI(program, rTmp, '\n');
     genPrintCharSyscall(program, rTmp);
+  }
+;
+
+randomize_statement
+  : RANDOMIZE LPAR exp RPAR
+  {
+    genADDI(program, r_random, $3, 0);    
   }
 ;
 
@@ -434,6 +447,13 @@ exp
     genSNE(program, rNormalizedOp2, $3, REG_0);
     $$ = getNewRegister(program);
     genOR(program, $$, rNormalizedOp1, rNormalizedOp2);
+  }
+  | RANDOM LPAR RPAR
+  {
+    $$ = getNewRegister(program);
+    genMULI(program, $$, r_random, 1664525);
+    genADDI(program, $$, $$, 1013904223);
+    genADDI(program, r_random, $$, 0);
   }
 ;
 
