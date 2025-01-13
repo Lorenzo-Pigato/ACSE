@@ -50,6 +50,7 @@ void yyerror(const char *msg)
   t_label *label;
   t_ifStmt ifStmt;
   t_whileStmt whileStmt;
+  t_iterateStmt iterateStmt;
 }
 
 /*
@@ -70,6 +71,8 @@ void yyerror(const char *msg)
 %token TYPE
 %token RETURN
 %token READ WRITE ELSE
+%token TIMES
+%token UNLESS
 
 // These are the tokens with a semantic value.
 %token <ifStmt> IF
@@ -77,6 +80,7 @@ void yyerror(const char *msg)
 %token <label> DO
 %token <string> IDENTIFIER
 %token <integer> NUMBER
+%token <iterateStmt> ITERATE
 
 /*
  * Non-terminal symbol semantic value type declarations
@@ -182,6 +186,7 @@ statement
   | return_statement SEMI
   | read_statement SEMI
   | write_statement SEMI
+  | iterate_statement SEMI
   | SEMI
 ;
 
@@ -197,6 +202,36 @@ assign_statement
     genStoreRegisterToArrayElement(program, $1, $3, $6);
   }
 ;
+
+iterate_statement
+  : ITERATE 
+  {
+    $1.lLoop = createLabel(program);
+    $1.lExit = createLabel(program);
+    $1.lCondition = createLabel(program);
+    
+    $1.counter = getNewRegister(program);
+    
+    genLI(program, $1.counter, 0);
+    genJ(program, $1.lCondition);
+
+    assignLabel(program, $1.lLoop);
+  }
+  code_block TIMES LPAR exp RPAR
+  {
+    genADDI(program, $1.counter, $1.counter, 1);
+    genBLE(program, $1.counter, $6 ,$1.lLoop);
+    genJ(program, $1.lExit);
+  }
+  UNLESS LPAR exp RPAR
+  {
+    assignLabel(program, $1.lCondition);
+    genBEQ(program, $11, REG_0, $1.lExit);
+    genJ(program, $1.lLoop);
+
+    assignLabel(program, $1.lExit);
+  }
+;  
 
 /* An if statements first computes the expression, then jumps to the `else' part
  * if the expression is equal to zero. Otherwise the `then' part is executed.
