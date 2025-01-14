@@ -70,6 +70,7 @@ void yyerror(const char *msg)
 %token TYPE
 %token RETURN
 %token READ WRITE ELSE
+%token ZIP
 
 // These are the tokens with a semantic value.
 %token <ifStmt> IF
@@ -182,6 +183,7 @@ statement
   | return_statement SEMI
   | read_statement SEMI
   | write_statement SEMI
+  | zip_statement SEMI
   | SEMI
 ;
 
@@ -197,6 +199,49 @@ assign_statement
     genStoreRegisterToArrayElement(program, $1, $3, $6);
   }
 ;
+
+zip_statement
+  : var_id ASSIGN ZIP LPAR var_id COMMA var_id RPAR
+  {
+    if(!isArray($1) || !isArray($5) || !isArray($7)){
+      yyerror("Zip statements can be done only between arrays");
+      YYERROR;
+    }
+
+    t_label* lLoop = createLabel(program);
+    t_label* lExit = createLabel(program);
+    t_regID r_max_pos = getNewRegister(program);
+
+    if($1->arraySize < $5->arraySize + $7->arraySize){
+      genADDI(program, r_max_pos, REG_0, $1->arraySize);
+    } else if ($5->arraySize <= $7->arraySize) {
+      genADDI(program, r_max_pos, REG_0, $5->arraySize);
+    } else {
+      genADDI(program, r_max_pos, REG_0, $7->arraySize);
+    }
+
+    t_regID r_index = getNewRegister(program);
+    t_regID r_temp = getNewRegister(program);
+    t_regID r_writehead = getNewRegister(program);
+
+    genLI(program, r_index, 0); 
+
+    assignLabel(program, lLoop);
+    genBGE(program, r_index, r_max_pos, lExit);
+
+    r_temp = genLoadArrayElement(program, $5, r_index);
+    genStoreRegisterToArrayElement(program, $1, r_writehead, r_temp);
+    genADDI(program, r_writehead, r_writehead, 1);
+    
+    r_temp = genLoadArrayElement(program, $7, r_index);
+    genStoreRegisterToArrayElement(program, $1, r_writehead, r_temp);
+    genADDI(program, r_writehead, r_writehead, 1);
+    
+    genADDI(program, r_index, r_index, 1);
+    genJ(program, lLoop);
+
+    assignLabel(program, lExit);
+  }
 
 /* An if statements first computes the expression, then jumps to the `else' part
  * if the expression is equal to zero. Otherwise the `then' part is executed.
