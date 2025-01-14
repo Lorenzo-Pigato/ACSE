@@ -70,6 +70,7 @@ void yyerror(const char *msg)
 %token TYPE
 %token RETURN
 %token READ WRITE ELSE
+%token COUNTONES
 
 // These are the tokens with a semantic value.
 %token <ifStmt> IF
@@ -435,6 +436,32 @@ exp
     $$ = getNewRegister(program);
     genOR(program, $$, rNormalizedOp1, rNormalizedOp2);
   }
+  | COUNTONES LPAR exp RPAR 
+  {
+    $$ = getNewRegister(program);
+    t_regID r_rem = getNewRegister(program);
+    t_regID r_div = getNewRegister(program);
+    t_regID r_one = getNewRegister(program);
+    
+
+    t_label* lExit = createLabel(program);
+    t_label* lLoop = createLabel(program);
+
+    genADDI(program, r_div, $3, 0);
+    genLI(program, $$, 32);
+    genLI(program, r_one, 1);
+
+    assignLabel(program, lLoop);
+    genBEQ(program, r_div, REG_0, lExit);
+    genAND(program, r_rem, r_div, REG_0);
+    genSUB(program, r_rem, r_one , r_rem);
+    genSUB(program, $$, $$, r_rem);
+    genDIVI(program, r_div, r_div, 2);
+    genJ(program, lLoop);
+
+    assignLabel(program, lExit);
+  }
+
 ;
 
 var_id
