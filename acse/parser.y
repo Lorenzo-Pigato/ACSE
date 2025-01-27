@@ -50,6 +50,7 @@ void yyerror(const char *msg)
   t_label *label;
   t_ifStmt ifStmt;
   t_whileStmt whileStmt;
+  t_returnStmt returnStmt;
 }
 
 /*
@@ -68,8 +69,8 @@ void yyerror(const char *msg)
 %token ASSIGN LT GT SHL_OP SHR_OP EQ NOTEQ LTEQ GTEQ
 %token ANDAND OROR
 %token TYPE
-%token RETURN
 %token READ WRITE ELSE
+%token EXEC
 
 // These are the tokens with a semantic value.
 %token <ifStmt> IF
@@ -77,6 +78,7 @@ void yyerror(const char *msg)
 %token <label> DO
 %token <string> IDENTIFIER
 %token <integer> NUMBER
+%token <returnStmt> RETURN
 
 /*
  * Non-terminal symbol semantic value type declarations
@@ -277,7 +279,14 @@ do_while_statement
 return_statement
   : RETURN
   {
+    $1->r_ret = getNewRegister(program);
+    genLI(program, $1->r_ret, 0);
     genExit0Syscall(program);
+  }
+  | RETURN exp
+  {
+    $1->r_ret = getNewRegister(program);
+    genADDI(program, $1->r_ret, $2, 0);
   }
 ;
 
@@ -434,6 +443,11 @@ exp
     genSNE(program, rNormalizedOp2, $3, REG_0);
     $$ = getNewRegister(program);
     genOR(program, $$, rNormalizedOp1, rNormalizedOp2);
+  }
+  | EXEC LPAR LBRACE exec_statements RBRACE RPAR
+  {
+    $$ = getNewRegister(program),
+    genADDI(program, $$, $5->r_ret, 0);
   }
 ;
 
